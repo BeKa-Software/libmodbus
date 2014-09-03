@@ -337,7 +337,21 @@ static ssize_t _modbus_rtu_recv(modbus_t *ctx, uint8_t *rsp, int rsp_length)
 #if defined(_WIN32)
     return win32_ser_read(&((modbus_rtu_t *)ctx->backend_data)->w_ser, rsp, rsp_length);
 #else
-    return read(ctx->s, rsp, rsp_length);
+    struct timeval tv;
+    fd_set rset;
+
+    FD_ZERO(&rset);
+    FD_SET(ctx->s, &rset);
+
+    int readBytes = 0;
+    modbus_rtu_t *ctx_rtu = ctx->backend_data;
+    tv.tv_usec = ctx_rtu->frameTiming;
+    tv.tv_sec = 0;
+
+    while(select(ctx->s+1, &rset, NULL, NULL, &tv) > 0) {
+    	readBytes += read(ctx->s, rsp+readBytes, 1);
+    }
+    return readBytes;
 #endif
 }
 
@@ -1197,5 +1211,10 @@ modbus_t* modbus_new_rtu(const char *device,
 
     ctx_rtu->confirmation_to_ignore = FALSE;
 
+    if(baud > 19200)
+        ctx_rtu->frameTiming = 1750*10; //precision: us (10^-6 s)
+    else
+        ctx_rtu->frameTiming = (unsigned long)(11 * 3.5 * 1000000L/baud)*10; //precision: us (10^-6 s)
+    
     return ctx;
 }

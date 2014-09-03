@@ -231,6 +231,9 @@ MODBUS_API int modbus_reply(modbus_t *ctx, const uint8_t *req,
 MODBUS_API int modbus_reply_exception(modbus_t *ctx, const uint8_t *req,
                                       unsigned int exception_code);
 
+MODBUS_API int modbus_set_trace_callback(modbus_t *ctx, void (*traceCallback)(uint8_t*, int, int, void *), void *);
+
+
 /**
  * UTILS FUNCTIONS
  **/

@@ -182,6 +182,10 @@ static int send_msg(modbus_t *ctx, uint8_t *msg, int msg_length)
 
     msg_length = ctx->backend->send_msg_pre(msg, msg_length);
 
+    if(ctx->traceCallback) {
+        ctx->traceCallback(msg, msg_length, 0, ctx->traceState);
+    }
+
     if (ctx->debug) {
         for (i = 0; i < msg_length; i++)
             printf("[%.2X]", msg[i]);
@@ -385,7 +389,7 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type)
         p_tv = &tv;
     }
 
-    while (length_to_read != 0) {
+    while (length_to_read > 0) {
         rc = ctx->backend->select(ctx, &rset, p_tv, length_to_read);
         if (rc == -1) {
             _error_print(ctx, "select");
@@ -477,6 +481,10 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type)
 
     if (ctx->debug)
         printf("\n");
+
+    if(ctx->traceCallback) {
+        ctx->traceCallback(msg, msg_length, 1, ctx->traceState);
+    }
 
     return ctx->backend->check_integrity(ctx, msg, msg_length);
 }
@@ -1103,6 +1111,26 @@ int modbus_reply_exception(modbus_t *ctx, const uint8_t *req,
     }
 }
 
+int modbus_set_trace_callback(modbus_t *ctx, void (*traceCallback)(uint8_t*, int, int, void*), void* state)
+{
+    if(ctx == NULL)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if(traceCallback == NULL)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    ctx->traceCallback = traceCallback;
+    ctx->traceState = state;
+
+    return 0;
+}
+
 /* Reads IO status */
 static int read_io_status(modbus_t *ctx, int function,
                           int addr, int nb, uint8_t *dest)
@@ -1638,6 +1666,10 @@ void _modbus_init_common(modbus_t *ctx)
 
     ctx->byte_timeout.tv_sec = 0;
     ctx->byte_timeout.tv_usec = _BYTE_TIMEOUT;
+
+    ctx->traceCallback = 0;
+    ctx->traceState = 0;
+
 }
 
 /* Define the slave number */
