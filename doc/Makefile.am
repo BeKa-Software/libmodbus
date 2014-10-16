@@ -24,6 +24,7 @@ MAN3 = \
         modbus_read_input_registers.3 \
         modbus_read_registers.3 \
         modbus_receive_confirmation.3 \
+        modbus_receive_from.3 \
         modbus_receive.3 \
         modbus_reply_exception.3 \
         modbus_reply.3 \
@@ -44,10 +45,7 @@ MAN3 = \
         modbus_set_slave.3 \
         modbus_set_socket.3 \
         modbus_strerror.3 \
-        modbus_tcp_accept.3 \
-        modbus_tcp_pi_accept.3 \
         modbus_tcp_listen.3 \
-        modbus_tcp_pi_listen.3 \
         modbus_write_and_read_registers.3 \
         modbus_write_bits.3 \
         modbus_write_bit.3 \

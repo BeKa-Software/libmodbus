@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODBUS_RTU_PRIVATE_H
-#define MODBUS_RTU_PRIVATE_H
+#ifndef _MODBUS_RTU_PRIVATE_H_
+#define _MODBUS_RTU_PRIVATE_H_
 
 #ifndef _MSC_VER
 #include <stdint.h>
@@ -89,4 +89,4 @@ typedef struct _modbus_rtu {
     unsigned long frameTiming;
 } modbus_rtu_t;
 
-#endif /* MODBUS_RTU_PRIVATE_H */
+#endif /* _MODBUS_RTU_PRIVATE_H_ */

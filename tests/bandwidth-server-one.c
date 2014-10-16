@@ -1,8 +1,18 @@
 /*
- * Copyright © 2008-2014 Stéphane Raimbault <stephane.raimbault@gmail.com>
+ * Copyright © 2008-2013 Stéphane Raimbault <stephane.raimbault@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the BSD License.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdio.h>
@@ -49,6 +59,7 @@ int main(int argc, char *argv[])
 
     if (use_backend == TCP) {
         ctx = modbus_new_tcp("127.0.0.1", 1502);
+        modbus_set_debug(ctx, TRUE);
         s = modbus_tcp_listen(ctx, 1);
         modbus_tcp_accept(ctx, &s);
 
@@ -58,8 +69,7 @@ int main(int argc, char *argv[])
         modbus_connect(ctx);
     }
 
-    mb_mapping = modbus_mapping_new(MODBUS_MAX_READ_BITS, 0,
-                                    MODBUS_MAX_READ_REGISTERS, 0);
+    mb_mapping = modbus_mapping_new(1000, 1000, 1000, 1000);
     if (mb_mapping == NULL) {
         fprintf(stderr, "Failed to allocate the mapping: %s\n",
                 modbus_strerror(errno));
