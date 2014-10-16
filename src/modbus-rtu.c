@@ -1212,9 +1212,9 @@ modbus_t* modbus_new_rtu(const char *device,
     ctx_rtu->confirmation_to_ignore = FALSE;
 
     if(baud > 19200)
-        ctx_rtu->frameTiming = 1750*10; //precision: us (10^-6 s)
+        ctx_rtu->frameTiming = 1750; //precision: us (10^-6 s)
     else
-        ctx_rtu->frameTiming = (unsigned long)(11 * 3.5 * 1000000L/baud)*10; //precision: us (10^-6 s)
+        ctx_rtu->frameTiming = (unsigned long)(11 * 3.5 * 1000000L/baud); //precision: us (10^-6 s)
     
     return ctx;
 }
