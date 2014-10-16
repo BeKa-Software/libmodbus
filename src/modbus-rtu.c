@@ -350,6 +350,7 @@ static ssize_t _modbus_rtu_recv(modbus_t *ctx, uint8_t *rsp, int rsp_length)
 
     while(select(ctx->s+1, &rset, NULL, NULL, &tv) > 0) {
     	readBytes += read(ctx->s, rsp+readBytes, 1);
+	tv.tv_usec = ctx_rtu->frameTiming; //reinit timeval
     }
     return readBytes;
 #endif
@@ -1193,9 +1194,9 @@ modbus_t* modbus_new_rtu(const char *device,
     ctx_rtu->confirmation_to_ignore = FALSE;
 
     if(baud > 19200)
-        ctx_rtu->frameTiming = 1750*10; //precision: us (10^-6 s)
+        ctx_rtu->frameTiming = 1750; //precision: us (10^-6 s)
     else
-        ctx_rtu->frameTiming = (unsigned long)(11 * 3.5 * 1000000L/baud)*10; //precision: us (10^-6 s)
+        ctx_rtu->frameTiming = (unsigned long)(11 * 3.5 * 1000000L/baud); //precision: us (10^-6 s)
     
     return ctx;
 }
