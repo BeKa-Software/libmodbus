@@ -47,11 +47,7 @@ const unsigned int libmodbus_version_micro = LIBMODBUS_VERSION_MICRO;
 #define MAX_MESSAGE_LENGTH 260
 
 /* 3 steps are used to parse the query */
-typedef enum {
-    _STEP_FUNCTION,
-    _STEP_META,
-    _STEP_DATA
-} _step_t;
+
 
 const char *modbus_strerror(int errnum) {
     switch (errnum) {
@@ -102,7 +98,7 @@ void _error_print(modbus_t *ctx, const char *context)
     }
 }
 
-static void _sleep_response_timeout(modbus_t *ctx)
+void _sleep_response_timeout(modbus_t *ctx)
 {
 #ifdef _WIN32
     /* usleep doesn't exist on Windows */
@@ -260,7 +256,7 @@ int modbus_send_raw_request(modbus_t *ctx, uint8_t *raw_req, int raw_req_length)
  */
 
 /* Computes the length to read after the function received */
-static uint8_t compute_meta_length_after_function(int function,
+uint8_t compute_meta_length_after_function(int function,
                                                   msg_type_t msg_type)
 {
     int length;
@@ -300,7 +296,7 @@ static uint8_t compute_meta_length_after_function(int function,
 }
 
 /* Computes the length to read after the meta information (address, count, etc) */
-static int compute_data_length_after_meta(modbus_t *ctx, uint8_t *msg,
+int compute_data_length_after_meta(modbus_t *ctx, uint8_t *msg,
                                           msg_type_t msg_type)
 {
     int function = msg[ctx->backend->header_length];

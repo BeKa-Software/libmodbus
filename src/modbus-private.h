@@ -70,6 +70,12 @@ typedef enum {
     _MODBUS_BACKEND_TYPE_TCP
 } modbus_backend_type_t;
 
+typedef enum {
+    _STEP_FUNCTION,
+    _STEP_META,
+    _STEP_DATA
+} _step_t;
+
 /*
  *  ---------- Request     Indication ----------
  *  | Client | ---------------------->| Server |
@@ -134,6 +140,9 @@ void _modbus_init_common(modbus_t *ctx);
 void _error_print(modbus_t *ctx, const char *context);
 int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type);
 
+void _sleep_response_timeout(modbus_t *ctx);
+uint8_t compute_meta_length_after_function(int function, msg_type_t msg_type);
+int compute_data_length_after_meta(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type);
 #ifndef HAVE_STRLCPY
 size_t strlcpy(char *dest, const char *src, size_t dest_size);
 #endif
