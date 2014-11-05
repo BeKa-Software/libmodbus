@@ -107,7 +107,7 @@ static int _modbus_tcp_select_s(modbus_t *ctx, fd_set *rset, struct timeval *tv,
             }
             /* Necessary after an error */
             FD_ZERO(rset);
-            FD_SET(ctx->s, rset);
+            FD_SET(s, rset);
         } else {
             return -1;
         }
@@ -801,7 +801,7 @@ int modbus_tcp_accept(modbus_t *ctx, int *s)
     addrlen = sizeof(addr);
     int a = accept(*s, (struct sockaddr *)&addr, &addrlen);
 
-    if (ctx->s == -1) {
+    if (a == -1) {
         close(*s);
         *s = -1;
         return -1;
