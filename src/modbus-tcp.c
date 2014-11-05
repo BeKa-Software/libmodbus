@@ -799,7 +799,7 @@ int modbus_tcp_accept(modbus_t *ctx, int *s)
     }
 
     addrlen = sizeof(addr);
-    ctx->s = accept(*s, (struct sockaddr *)&addr, &addrlen);
+    int a = accept(*s, (struct sockaddr *)&addr, &addrlen);
 
     if (ctx->s == -1) {
         close(*s);
@@ -812,7 +812,8 @@ int modbus_tcp_accept(modbus_t *ctx, int *s)
                inet_ntoa(addr.sin_addr));
     }
 
-    return ctx->s;
+    ctx->s = a;
+    return a;
 }
 
 int modbus_tcp_receive(modbus_t *ctx, int s, uint8_t* query) 
@@ -826,8 +827,6 @@ int modbus_tcp_receive(modbus_t *ctx, int s, uint8_t* query)
         errno = EINVAL;
         return -1;
     }
-    
-    ctx->s = s;
     
     return _modbus_tcp_receive_msg(ctx, query, MSG_INDICATION, s);
   
