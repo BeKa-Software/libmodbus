@@ -107,7 +107,7 @@ static int _modbus_tcp_select_s(modbus_t *ctx, fd_set *rset, struct timeval *tv,
             }
             /* Necessary after an error */
             FD_ZERO(rset);
-            FD_SET(s, rset);
+            FD_SET(ctx->s, rset);
         } else {
             return -1;
         }
