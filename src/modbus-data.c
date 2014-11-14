@@ -40,6 +40,15 @@
 #  endif
 #endif
 
+#if defined(__GNUC__)
+#  define GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__ * 10)
+#  if GCC_VERSION >= 430
+// Since GCC >= 4.30, GCC provides __builtin_bswapXX() alternatives so we switch to them
+#    undef bswap_64
+#    define bswap_64 __builtin_bswap64
+#  endif
+#endif
+
 #if !defined(bswap_32)
 
 #if !defined(bswap_16)
@@ -148,4 +157,49 @@ void modbus_set_float_dcba(float f, uint16_t *dest)
     i = bswap_32(i);
     dest[0] = (uint16_t)i;
     dest[1] = (uint16_t)(i >> 16);
+}
+
+double modbus_get_double(const uint16_t *src)
+{
+    double f;
+    uint64_t i;
+
+    i = (((uint64_t)src[3]) << 48) +  (((uint64_t)src[2]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
+    memcpy(&f, &i, sizeof(double));
+
+    return f;
+}
+
+double modbus_get_double_dcba(const uint16_t *src)
+{
+    double f;
+    uint32_t i;
+
+    i = bswap_64(((uint64_t)src[3]) << 48) +  (((uint64_t)src[2]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
+    memcpy(&f, &i, sizeof(double));
+
+    return f;
+}
+
+void modbus_set_double(double f, uint16_t *dest)
+{
+    uint64_t i;
+
+    memcpy(&i, &f, sizeof(uint64_t));
+    dest[0] = (uint16_t)i;
+    dest[1] = (uint16_t)(i >> 16);
+    dest[2] = (uint16_t)(i >> 32);
+    dest[3] = (uint16_t)(i >> 48);
+}
+
+void modbus_set_double_dcba(double f, uint16_t *dest)
+{
+    uint64_t i;
+
+    memcpy(&i, &f, sizeof(uint64_t));
+    i = bswap_64(i);
+    dest[0] = (uint16_t)i;
+    dest[1] = (uint16_t)(i >> 16);
+    dest[2] = (uint16_t)(i >> 32);
+    dest[3] = (uint16_t)(i >> 48);
 }

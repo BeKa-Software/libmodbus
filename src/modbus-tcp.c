@@ -97,29 +97,7 @@ static int _modbus_set_slave(modbus_t *ctx, int slave)
 }
 
 
-static int _modbus_tcp_select_s(modbus_t *ctx, fd_set *rset, struct timeval *tv, int length_to_read, int s)
-{
-    int s_rc;
-    while ((s_rc = select(s+1, rset, NULL, NULL, tv)) == -1) {
-        if (errno == EINTR) {
-            if (ctx->debug) {
-                fprintf(stderr, "A non blocked signal was caught\n");
-            }
-            /* Necessary after an error */
-            FD_ZERO(rset);
-            FD_SET(ctx->s, rset);
-        } else {
-            return -1;
-        }
-    }
 
-    if (s_rc == 0) {
-        errno = ETIMEDOUT;
-        return -1;
-    }
-
-    return s_rc;
-}
 
 /* Builds a TCP request header */
 static int _modbus_tcp_build_request_basis(modbus_t *ctx, int function,
@@ -204,145 +182,6 @@ static ssize_t _modbus_tcp_send(modbus_t *ctx, const uint8_t *req, int req_lengt
 
 static int _modbus_tcp_receive(modbus_t *ctx, uint8_t *req) {
     return _modbus_receive_msg(ctx, req, MSG_INDICATION);
-}
-
-static ssize_t _modbus_tcp_recv_s(uint8_t *rsp, int rsp_length, int s) {
-    return recv(s, (char*)rsp, rsp_length, 0);
-}
-
-static int _modbus_tcp_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type, int s)
-{
-    int rc;
-    fd_set rset;
-    struct timeval tv;
-    struct timeval *p_tv;
-    int length_to_read;
-    int msg_length = 0;
-    _step_t step;
-
-    if (ctx->debug) {
-        if (msg_type == MSG_INDICATION) {
-            printf("Waiting for a indication...\n");
-        } else {
-            printf("Waiting for a confirmation...\n");
-        }
-    }
-
-    /* Add a file descriptor to the set */
-    FD_ZERO(&rset);
-    FD_SET(ctx->s, &rset);
-
-    /* We need to analyse the message step by step.  At the first step, we want
-     * to reach the function code because all packets contain this
-     * information. */
-    step = _STEP_FUNCTION;
-    length_to_read = ctx->backend->header_length + 1;
-
-    if (msg_type == MSG_INDICATION) {
-        /* Wait for a message, we don't know when the message will be
-         * received */
-        p_tv = NULL;
-    } else {
-        tv.tv_sec = ctx->response_timeout.tv_sec;
-        tv.tv_usec = ctx->response_timeout.tv_usec;
-        p_tv = &tv;
-    }
-
-    while (length_to_read > 0) {
-        rc = _modbus_tcp_select_s(ctx, &rset, p_tv, length_to_read, s);
-        if (rc == -1) {
-            _error_print(ctx, "select");
-            if (ctx->error_recovery & MODBUS_ERROR_RECOVERY_LINK) {
-                int saved_errno = errno;
-
-                if (errno == ETIMEDOUT) {
-                    _sleep_response_timeout(ctx);
-                    modbus_flush(ctx);
-                } else if (errno == EBADF) {
-                    modbus_close(ctx);
-                    modbus_connect(ctx);
-                }
-                errno = saved_errno;
-            }
-            return -1;
-        }
-
-        rc = _modbus_tcp_recv_s(msg + msg_length, length_to_read, s);
-        if (rc == 0) {
-            errno = ECONNRESET;
-            rc = -1;
-        }
-
-        if (rc == -1) {
-            _error_print(ctx, "read");
-            if ((ctx->error_recovery & MODBUS_ERROR_RECOVERY_LINK) &&
-                (errno == ECONNRESET || errno == ECONNREFUSED ||
-                 errno == EBADF)) {
-                int saved_errno = errno;
-                modbus_close(ctx);
-                modbus_connect(ctx);
-                /* Could be removed by previous calls */
-                errno = saved_errno;
-            }
-            return -1;
-        }
-
-        /* Display the hex code of each character received */
-        if (ctx->debug) {
-            int i;
-            for (i=0; i < rc; i++)
-                printf("<%.2X>", msg[msg_length + i]);
-        }
-
-        /* Sums bytes received */
-        msg_length += rc;
-        /* Computes remaining bytes */
-        length_to_read -= rc;
-
-        if (length_to_read == 0) {
-            switch (step) {
-            case _STEP_FUNCTION:
-                /* Function code position */
-                length_to_read = compute_meta_length_after_function(
-                    msg[ctx->backend->header_length],
-                    msg_type);
-                if (length_to_read != 0) {
-                    step = _STEP_META;
-                    break;
-                } /* else switches straight to the next step */
-            case _STEP_META:
-                length_to_read = compute_data_length_after_meta(
-                    ctx, msg, msg_type);
-                if ((msg_length + length_to_read) > (int)ctx->backend->max_adu_length) {
-                    errno = EMBBADDATA;
-                    _error_print(ctx, "too many data");
-                    return -1;
-                }
-                step = _STEP_DATA;
-                break;
-            default:
-                break;
-            }
-        }
-
-        if (length_to_read > 0 && ctx->byte_timeout.tv_sec != -1) {
-            /* If there is no character in the buffer, the allowed timeout
-               interval between two consecutive bytes is defined by
-               byte_timeout */
-            tv.tv_sec = ctx->byte_timeout.tv_sec;
-            tv.tv_usec = ctx->byte_timeout.tv_usec;
-            p_tv = &tv;
-        }
-    }
-
-    if (ctx->debug)
-        printf("\n");
-
-    if(ctx->traceCallback) {
-        ctx->traceCallback(msg, msg_length, 1, ctx->traceState);
-    }
-
-    return ctx->backend->check_integrity(ctx, msg, msg_length);
 }
 
 static ssize_t _modbus_tcp_recv(modbus_t *ctx, uint8_t *rsp, int rsp_length) {
@@ -814,31 +653,6 @@ int modbus_tcp_accept(modbus_t *ctx, int *s)
 
     ctx->s = a;
     return a;
-}
-
-int modbus_tcp_receive(modbus_t *ctx, int s, uint8_t* query) 
-{
-    if(!s) {
-      errno = EINVAL;
-      return -1;
-    }
-    
-    if (ctx == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-    
-    return _modbus_tcp_receive_msg(ctx, query, MSG_INDICATION, s);
-  
-}
-
-modbus_t *modbus_clone_tcp( modbus_t* ctx)
-{
-    modbus_t *new_ctx = (modbus_t *) malloc(sizeof(modbus_t));
-    memcpy(new_ctx, ctx, sizeof(modbus_t));
-    new_ctx->backend_data = (modbus_tcp_t *) malloc(sizeof(modbus_tcp_t));
-    memcpy(new_ctx->backend_data, ctx->backend_data, sizeof(modbus_tcp_t));
-    return new_ctx;
 }
 
 int modbus_tcp_pi_accept(modbus_t *ctx, int *s)

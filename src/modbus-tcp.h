@@ -54,8 +54,6 @@ MODBUS_BEGIN_DECLS
 MODBUS_API modbus_t* modbus_new_tcp(const char *ip_address, int port);
 MODBUS_API int modbus_tcp_listen(modbus_t *ctx, int nb_connection);
 MODBUS_API int modbus_tcp_accept(modbus_t *ctx, int *s);
-MODBUS_API int modbus_tcp_receive(modbus_t *ctx, int s, uint8_t* query);
-MODBUS_API modbus_t* modbus_clone_tcp(modbus_t* ctx);
 
 MODBUS_API modbus_t* modbus_new_tcp_pi(const char *node, const char *service);
 MODBUS_API int modbus_tcp_pi_listen(modbus_t *ctx, int nb_connection);
