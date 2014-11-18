@@ -26,10 +26,8 @@
 #include <assert.h>
 
 #include "modbus.h"
+#include <byteswap.h>
 
-#if defined(HAVE_BYTESWAP_H)
-#  include <byteswap.h>
-#endif
 
 #if defined(__GNUC__)
 #  define GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__ * 10)
@@ -131,8 +129,9 @@ float modbus_get_float_dcba(const uint16_t *src)
 {
     float f;
     uint32_t i;
+    i = (((uint32_t)src[1]) << 16) + src[0];
 
-    i = bswap_32((((uint32_t)src[1]) << 16) + src[0]);
+    i = bswap_32(i);
     memcpy(&f, &i, sizeof(float));
 
     return f;
@@ -165,7 +164,7 @@ double modbus_get_double(const uint16_t *src)
     uint64_t i;
 
     i = (((uint64_t)src[3]) << 48) +  (((uint64_t)src[2]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
-    memcpy(&f, &i, sizeof(double));
+    memcpy(&f, &i, sizeof(uint64_t));
 
     return f;
 }
@@ -190,6 +189,8 @@ void modbus_set_double(double f, uint16_t *dest)
     dest[1] = (uint16_t)(i >> 16);
     dest[2] = (uint16_t)(i >> 32);
     dest[3] = (uint16_t)(i >> 48);
+    return;
+    memcpy(dest, &f, sizeof(double));
 }
 
 void modbus_set_double_dcba(double f, uint16_t *dest)
@@ -198,8 +199,8 @@ void modbus_set_double_dcba(double f, uint16_t *dest)
 
     memcpy(&i, &f, sizeof(uint64_t));
     i = bswap_64(i);
-    dest[0] = (uint16_t)i;
-    dest[1] = (uint16_t)(i >> 16);
-    dest[2] = (uint16_t)(i >> 32);
-    dest[3] = (uint16_t)(i >> 48);
+    dest[0] = (uint16_t)i & 0xFF;
+    dest[1] = (uint16_t)(i >> 16) & 0xFF;
+    dest[2] = (uint16_t)(i >> 32) & 0xFF;
+    dest[3] = (uint16_t)(i >> 48) & 0xFF;
 }

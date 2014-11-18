@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Unable to allocate libmodbus context\n");
         return -1;
     }
-    modbus_set_debug(ctx, TRUE);
+   // modbus_set_debug(ctx, TRUE);
     modbus_set_error_recovery(ctx,
                               MODBUS_ERROR_RECOVERY_LINK |
                               MODBUS_ERROR_RECOVERY_PROTOCOL);
@@ -365,6 +365,38 @@ int main(int argc, char *argv[])
         printf("FAILED (%f != %f)\n", real, UT_REAL);
         goto close;
     }
+
+
+    printf("\nTEST DOUBLES\n");
+
+    printf("1/2 Set/Get double in ABCDEFGH order: ");
+    double val = (double)UT_REAL;
+    int offset = 8;
+    modbus_set_double(val, tab_rp_registers+offset);
+
+    val = modbus_get_double(tab_rp_registers+offset);
+
+    if(val != UT_REAL) {
+         printf("FAILED %f\n", val);
+        goto close;
+    }
+    else {
+        printf("OK\n");
+    }
+
+    printf("2/2 Set double in HGFEDCBA order: ");
+    modbus_set_double_dcba(val, tab_rp_registers+offset);
+    val = modbus_get_double_dcba(tab_rp_registers+offset);
+
+    if(val != UT_REAL) {
+        printf("FAILED %f\n", val);
+        goto close;
+    }
+    else {
+        printf("OK\n");
+    }
+
+
     printf("\nAt this point, error messages doesn't mean the test has failed\n");
 
     /** ILLEGAL DATA ADDRESS **/
