@@ -275,7 +275,17 @@ static int _connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen,
         /* Wait to be available in writing */
         FD_ZERO(&wset);
         FD_SET(sockfd, &wset);
+
+	struct timeval org;
+        org.tv_sec = tv->tv_sec;
+        org.tv_usec = tv->tv_usec;
+        
         rc = select(sockfd + 1, NULL, &wset, NULL, tv);
+        
+        tv->tv_sec = org.tv_sec;
+        tv->tv_usec = org.tv_usec;
+
+
         if (rc <= 0) {
             /* Timeout or fail */
             return -1;
