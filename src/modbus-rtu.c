@@ -350,6 +350,8 @@ static ssize_t _modbus_rtu_recv(modbus_t *ctx, uint8_t *rsp, int rsp_length)
 
     while(select(ctx->s+1, &rset, NULL, NULL, &tv) > 0) {
     	readBytes += read(ctx->s, rsp+readBytes, 1);
+        if(readBytes >= MODBUS_RTU_MAX_ADU_LENGTH)
+            return readBytes;
 	tv.tv_usec = ctx_rtu->frameTiming; //reinit timeval
     }
     return readBytes;

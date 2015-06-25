@@ -367,7 +367,7 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type)
     step = _STEP_FUNCTION;
     length_to_read = ctx->backend->header_length + 1;
 
-    if (msg_type == MSG_INDICATION) {
+     if (msg_type == MSG_INDICATION) {
         /* Wait for a message, we don't know when the message will be
          * received */
         p_tv = NULL;
@@ -1083,7 +1083,9 @@ static int read_io_status(modbus_t *ctx, int function,
     int req_length;
 
     uint8_t req[_MIN_REQ_LENGTH];
+    bzero(req, _MIN_REQ_LENGTH);
     uint8_t rsp[MAX_MESSAGE_LENGTH];
+    bzero(rsp, MAX_MESSAGE_LENGTH);
 
     req_length = ctx->backend->build_request_basis(ctx, function, addr, nb, req);
 
