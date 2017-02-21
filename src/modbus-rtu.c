@@ -913,7 +913,7 @@ static int _modbus_rtu_connect(modbus_t *ctx)
     return 0;
 }
 
-int modbus_rtu_set_serial_mode(modbus_t *ctx, int mode)
+int modbus_rtu_set_serial_mode(modbus_t *ctx, int mode, bool useNewKernelFlags)
 {
     if (ctx == NULL) {
         errno = EINVAL;
@@ -928,6 +928,8 @@ int modbus_rtu_set_serial_mode(modbus_t *ctx, int mode)
 
         if (mode == MODBUS_RTU_RS485) {
             rs485conf.flags = SER_RS485_ENABLED;
+            if (useNewKernelFlags)
+                rs485conf.flags = rs485conf.flags | SER_RS485_RTS_ON_SEND;
             if (ioctl(ctx->s, TIOCSRS485, &rs485conf) < 0) {
                 return -1;
             }
