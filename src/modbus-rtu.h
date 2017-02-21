@@ -20,6 +20,7 @@
 #define _MODBUS_RTU_H_
 
 #include "modbus.h"
+#include <stdbool.h>
 
 MODBUS_BEGIN_DECLS
 
