@@ -34,6 +34,7 @@
 
 #include "modbus.h"
 #include "modbus-private.h"
+#include "modbus-rtu.h"
 
 /* Internal use */
 #define MSG_LENGTH_UNDEFINED -1
@@ -178,6 +179,31 @@ static int send_msg(modbus_t *ctx, uint8_t *msg, int msg_length)
         for (i = 0; i < msg_length; i++)
             printf("[%.2X]", msg[i]);
         printf("\n");
+    }
+
+    /* Empty receive buffer to avoid reading already existing received data
+     * that does NOT belong to the current request's response. */
+    if (ctx->backend->backend_type == _MODBUS_BACKEND_TYPE_RTU)
+    {
+        uint8_t rsp[MAX_MESSAGE_LENGTH];
+        int totalReadBytes = 0;
+        int readBytes = 1;
+        while (readBytes > 0)
+        {
+#if defined(_WIN32)
+        int rsp_length = 0;
+            readBytes = win32_ser_read(&((modbus_rtu_t *)ctx->backend_data)->w_ser, rsp, rsp_length);
+#else
+            readBytes = read(ctx->s, rsp, MAX_MESSAGE_LENGTH);
+#endif
+            if(ctx->traceCallback && readBytes > 0)
+                ctx->traceCallback(rsp, readBytes, -1, ctx->traceState);
+
+            totalReadBytes += readBytes;
+        }
+
+        if (ctx->debug && totalReadBytes > 0)
+            printf("Read %i unexpected bytes from receive buffer before sending a new message!\n", totalReadBytes);
     }
 
     /* In recovery mode, the write command will be issued until to be
@@ -1179,7 +1205,7 @@ int modbus_read_input_bits(modbus_t *ctx, int addr, int nb, uint8_t *dest)
         return nb;
 }
 
-/* Reads the data from a remove device and put that data into an array */
+/* Reads the data from a remote device and put that data into an array */
 static int read_registers(modbus_t *ctx, int function, int addr, int nb,
                           uint16_t *dest)
 {
@@ -1217,8 +1243,8 @@ static int read_registers(modbus_t *ctx, int function, int addr, int nb,
 
         for (i = 0; i < rc; i++) {
             /* shift reg hi_byte to temp OR with lo_byte */
-            dest[i] = (rsp[offset + 2 + (i << 1)] << 8) |
-                rsp[offset + 3 + (i << 1)];
+            if (i < nb)
+                dest[i] = (rsp[offset + 2 + (i << 1)] << 8) | rsp[offset + 3 + (i << 1)];
         }
     }
 
