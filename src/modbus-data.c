@@ -118,7 +118,14 @@ float modbus_get_float(const uint16_t *src)
     float f;
     uint32_t i;
 
-    i = (((uint32_t)src[1]) << 16) + src[0];
+    // The following instruction may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 2-byte aligned
+    // i = (((uint32_t)src[1]) << 16) + src[0];
+    // Thus we have to use the following workaround:
+    uint16_t left, right;
+    memcpy(&left, src + 1, sizeof(uint16_t));
+    memcpy(&right, src, sizeof(uint16_t));
+    i = (((uint32_t)left) << 16) + right;
+
     memcpy(&f, &i, sizeof(float));
 
     return f;
@@ -129,7 +136,13 @@ float modbus_get_float_dcba(const uint16_t *src)
 {
     float f;
     uint32_t i;
-    i = (((uint32_t)src[1]) << 16) + src[0];
+    // The following instruction may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 2-byte aligned
+    // i = (((uint32_t)src[1]) << 16) + src[0];
+    // Thus we have to use the following workaround:
+    uint16_t left, right;
+    memcpy(&left, src + 1, sizeof(uint16_t));
+    memcpy(&right, src, sizeof(uint16_t));
+    i = (((uint32_t)left) << 16) + right;
 
     i = bswap_32(i);
     memcpy(&f, &i, sizeof(float));
@@ -143,8 +156,15 @@ void modbus_set_float(float f, uint16_t *dest)
     uint32_t i;
 
     memcpy(&i, &f, sizeof(uint32_t));
-    dest[0] = (uint16_t)i;
-    dest[1] = (uint16_t)(i >> 16);
+    // The following instructions may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 2-byte aligned
+    // dest[0] = (uint16_t)i;
+    // dest[1] = (uint16_t)(i >> 16);
+    // Thus we have to use the following workaround:
+    uint16_t first, second;
+    first = (uint16_t)i;
+    second = (uint16_t)(i >> 16);
+    memcpy(dest, &first, sizeof(uint16_t));
+    memcpy(dest + 1, &second, sizeof(uint16_t));
 }
 
 /* Set a float to 4 bytes in inversed Modbus format (DCBA) */
@@ -154,8 +174,15 @@ void modbus_set_float_dcba(float f, uint16_t *dest)
 
     memcpy(&i, &f, sizeof(uint32_t));
     i = bswap_32(i);
-    dest[0] = (uint16_t)i;
-    dest[1] = (uint16_t)(i >> 16);
+    // The following instructions may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 2-byte aligned
+    // dest[0] = (uint16_t)i;
+    // dest[1] = (uint16_t)(i >> 16);
+    // Thus we have to use the following workaround:
+    uint16_t first, second;
+    first = (uint16_t)i;
+    second = (uint16_t)(i >> 16);
+    memcpy(dest, &first, sizeof(uint16_t));
+    memcpy(dest + 1, &second, sizeof(uint16_t));
 }
 
 double modbus_get_double(const uint16_t *src)
@@ -163,7 +190,16 @@ double modbus_get_double(const uint16_t *src)
     double f;
     uint64_t i;
 
-    i = (((uint64_t)src[3]) << 48) +  (((uint64_t)src[2]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
+    // The following instructions may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 4-byte aligned
+    // i = (((uint64_t)src[3]) << 48) +  (((uint64_t)src[2]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
+    // Thus we have to use the following workaround:
+    uint16_t v1, v2, v3, v4;
+    memcpy(&v1, src + 3, sizeof(uint16_t));
+    memcpy(&v2, src + 2, sizeof(uint16_t));
+    memcpy(&v3, src + 1, sizeof(uint16_t));
+    memcpy(&v4, src, sizeof(uint16_t));
+    i = (((uint64_t)v1) << 48) + (((uint64_t)v2) << 32) + (((uint64_t)v3) << 16) + v4;
+
     memcpy(&f, &i, sizeof(uint64_t));
 
     return f;
@@ -174,7 +210,16 @@ double modbus_get_double_dcba(const uint16_t *src)
     double f;
     uint32_t i;
 
-    i = bswap_64(((uint64_t)src[3]) << 48) +  (((uint64_t)src[2]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
+    // The following instructions may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 4-byte aligned
+    // i = bswap_64(((uint64_t)src[3]) << 48) +  (((uint64_t)src[2]) << 32) + (((uint64_t)src[1]) << 16) + src[0];
+    // Thus we have to use the following workaround:
+    uint16_t v1, v2, v3, v4;
+    memcpy(&v1, src + 3, sizeof(uint16_t));
+    memcpy(&v2, src + 2, sizeof(uint16_t));
+    memcpy(&v3, src + 1, sizeof(uint16_t));
+    memcpy(&v4, src, sizeof(uint16_t));
+    i = bswap_64(((uint64_t)v1) << 48) +  (((uint64_t)v2) << 32) + (((uint64_t)v3) << 16) + v4;
+
     memcpy(&f, &i, sizeof(double));
 
     return f;
@@ -185,10 +230,22 @@ void modbus_set_double(double f, uint16_t *dest)
     uint64_t i;
 
     memcpy(&i, &f, sizeof(uint64_t));
-    dest[0] = (uint16_t)i;
-    dest[1] = (uint16_t)(i >> 16);
-    dest[2] = (uint16_t)(i >> 32);
-    dest[3] = (uint16_t)(i >> 48);
+    // The following instructions may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 2-byte aligned
+    // dest[0] = (uint16_t)i;
+    // dest[1] = (uint16_t)(i >> 16);
+    // dest[2] = (uint16_t)(i >> 32);
+    // dest[3] = (uint16_t)(i >> 48);
+    // Thus we have to use the following workaround:
+    uint16_t v1, v2, v3, v4;
+    v1 = (uint16_t)i;
+    v2 = (uint16_t)(i >> 16);
+    v3 = (uint16_t)(i >> 32);
+    v4 = (uint16_t)(i >> 48);
+    memcpy(dest, &v1, sizeof(uint16_t));
+    memcpy(dest + 1, &v2, sizeof(uint16_t));
+    memcpy(dest + 2, &v3, sizeof(uint16_t));
+    memcpy(dest + 3, &v4, sizeof(uint16_t));
+
     return;
     memcpy(dest, &f, sizeof(double));
 }
@@ -199,8 +256,19 @@ void modbus_set_double_dcba(double f, uint16_t *dest)
 
     memcpy(&i, &f, sizeof(uint64_t));
     i = bswap_64(i);
-    dest[0] = (uint16_t)i & 0xFF;
-    dest[1] = (uint16_t)(i >> 16) & 0xFF;
-    dest[2] = (uint16_t)(i >> 32) & 0xFF;
-    dest[3] = (uint16_t)(i >> 48) & 0xFF;
+    // The following instructions may cause SIGILL (signal 4) or signal 7 when the pointer address is not be 2-byte aligned
+    // dest[0] = (uint16_t)i & 0xFF;
+    // dest[1] = (uint16_t)(i >> 16) & 0xFF;
+    // dest[2] = (uint16_t)(i >> 32) & 0xFF;
+    // dest[3] = (uint16_t)(i >> 48) & 0xFF;
+    // Thus we have to use the following workaround:
+    uint16_t v1, v2, v3, v4;
+    v1 = (uint16_t)i & 0xFF;
+    v2 = (uint16_t)(i >> 16) & 0xFF;
+    v3 = (uint16_t)(i >> 32) & 0xFF;
+    v4 = (uint16_t)(i >> 48) & 0xFF;
+    memcpy(dest, &v1, sizeof(uint16_t));
+    memcpy(dest + 1, &v2, sizeof(uint16_t));
+    memcpy(dest + 2, &v3, sizeof(uint16_t));
+    memcpy(dest + 3, &v4, sizeof(uint16_t));
 }

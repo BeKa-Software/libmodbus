@@ -1829,7 +1829,7 @@ modbus_mapping_t* modbus_mapping_new(int nb_bits, int nb_input_bits,
         mb_mapping->tab_registers = NULL;
     } else {
         mb_mapping->tab_registers =
-            (uint16_t *) malloc(nb_registers * sizeof(uint16_t));
+            (uint16_t *) aligned_alloc(2, nb_registers * sizeof(uint16_t));
         if (mb_mapping->tab_registers == NULL) {
             free(mb_mapping->tab_input_bits);
             free(mb_mapping->tab_bits);
@@ -1845,7 +1845,7 @@ modbus_mapping_t* modbus_mapping_new(int nb_bits, int nb_input_bits,
         mb_mapping->tab_input_registers = NULL;
     } else {
         mb_mapping->tab_input_registers =
-            (uint16_t *) malloc(nb_input_registers * sizeof(uint16_t));
+            (uint16_t *) aligned_alloc(2, nb_input_registers * sizeof(uint16_t));
         if (mb_mapping->tab_input_registers == NULL) {
             free(mb_mapping->tab_registers);
             free(mb_mapping->tab_input_bits);
