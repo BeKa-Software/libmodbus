@@ -224,6 +224,19 @@ MODBUS_API int modbus_set_trace_callback(modbus_t *ctx, void (*traceCallback)(ui
         tab_int8[(index)] = (value) >> 8;  \
         tab_int8[(index) + 1] = (value) & 0xFF; \
     } while (0)
+		
+#define MODBUS_SET_INT32_TO_INT16(tab_int16, index, value) \
+    do { \
+        tab_int16[(index)    ] = (value) >> 16; \
+        tab_int16[(index) + 1] = (value); \
+    } while (0)
+#define MODBUS_SET_INT64_TO_INT16(tab_int16, index, value) \
+    do { \
+        tab_int16[(index)    ] = (value) >> 48; \
+        tab_int16[(index) + 1] = (value) >> 32; \
+        tab_int16[(index) + 2] = (value) >> 16; \
+        tab_int16[(index) + 3] = (value); \
+    } while (0)
 
 MODBUS_API void modbus_set_bits_from_byte(uint8_t *dest, int index, const uint8_t value);
 MODBUS_API void modbus_set_bits_from_bytes(uint8_t *dest, int index, unsigned int nb_bits,
