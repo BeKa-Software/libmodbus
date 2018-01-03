@@ -108,7 +108,7 @@ typedef struct _modbus_backend {
     int (*prepare_response_tid) (const uint8_t *req, int *req_length);
     int (*send_msg_pre) (uint8_t *req, int req_length);
     ssize_t (*send) (modbus_t *ctx, const uint8_t *req, int req_length);
-    int (*receive) (modbus_t *ctx, uint8_t *req);
+    int (*receive) (modbus_t *ctx, uint8_t *req, int* pIsActive);
     ssize_t (*recv) (modbus_t *ctx, uint8_t *rsp, int rsp_length);
     int (*check_integrity) (modbus_t *ctx, uint8_t *msg,
                             const int msg_length);
@@ -117,7 +117,7 @@ typedef struct _modbus_backend {
     int (*connect) (modbus_t *ctx);
     void (*close) (modbus_t *ctx);
     int (*flush) (modbus_t *ctx);
-    int (*select) (modbus_t *ctx, fd_set *rset, struct timeval *tv, int msg_length);
+    int (*select) (modbus_t *ctx, fd_set *rset, struct timeval *tv, int msg_length, int* pIsActive);
     void (*free) (modbus_t *ctx);
 } modbus_backend_t;
 
@@ -138,7 +138,7 @@ struct _modbus {
 
 void _modbus_init_common(modbus_t *ctx);
 void _error_print(modbus_t *ctx, const char *context);
-int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type);
+int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type, int* pIsActive);
 
 void _sleep_response_timeout(modbus_t *ctx);
 uint8_t compute_meta_length_after_function(int function, msg_type_t msg_type);

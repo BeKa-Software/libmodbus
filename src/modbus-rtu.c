@@ -309,13 +309,13 @@ static ssize_t _modbus_rtu_send(modbus_t *ctx, const uint8_t *req, int req_lengt
 #endif
 }
 
-static int _modbus_rtu_receive(modbus_t *ctx, uint8_t *req)
+static int _modbus_rtu_receive(modbus_t *ctx, uint8_t *req, int* pIsActive)
 {
     int rc;
     modbus_rtu_t *ctx_rtu = ctx->backend_data;
 
     if (ctx_rtu->confirmation_to_ignore) {
-        _modbus_receive_msg(ctx, req, MSG_CONFIRMATION);
+        _modbus_receive_msg(ctx, req, MSG_CONFIRMATION, pIsActive);
         /* Ignore errors and reset the flag */
         ctx_rtu->confirmation_to_ignore = FALSE;
         rc = 0;
@@ -323,7 +323,7 @@ static int _modbus_rtu_receive(modbus_t *ctx, uint8_t *req)
             printf("Confirmation to ignore\n");
         }
     } else {
-        rc = _modbus_receive_msg(ctx, req, MSG_INDICATION);
+        rc = _modbus_receive_msg(ctx, req, MSG_INDICATION, pIsActive);
         if (rc == 0) {
             /* The next expected message is a confirmation to ignore */
             ctx_rtu->confirmation_to_ignore = TRUE;
@@ -1080,7 +1080,7 @@ static int _modbus_rtu_flush(modbus_t *ctx)
 }
 
 static int _modbus_rtu_select(modbus_t *ctx, fd_set *rset,
-                       struct timeval *tv, int length_to_read)
+                       struct timeval *tv, int length_to_read, int* pIsActive)
 {
     int s_rc;
 #if defined(_WIN32)
@@ -1095,16 +1095,37 @@ static int _modbus_rtu_select(modbus_t *ctx, fd_set *rset,
         return -1;
     }
 #else
-    while ((s_rc = select(ctx->s+1, rset, NULL, NULL, tv)) == -1) {
-        if (errno == EINTR) {
-            if (ctx->debug) {
-                fprintf(stderr, "A non blocked signal was caught\n");
+    struct timeval* pTV = tv;
+    struct timeval timeVal;
+    timeVal.tv_sec = 1;
+    timeVal.tv_usec = 0;
+    if (!pTV && pIsActive)
+        pTV = &timeVal;
+
+    s_rc = select(ctx->s+1, rset, NULL, NULL, pTV);
+    while ((s_rc == -1) // Repeat as long as an error occured
+        || (pIsActive && *pIsActive && s_rc == 0 && pTV == &timeVal)) // OR: While pIsActive is a valid pointer and points to a true-value and the 1sec timeout occured
+    {
+        if (s_rc == -1)
+        {
+            if (errno == EINTR) {
+                if (ctx->debug) {
+                    fprintf(stderr, "A non blocked signal was caught\n");
+                }
+                /* Necessary after an error */
+                FD_ZERO(rset);
+                FD_SET(ctx->s, rset);
+            } else {
+                return -1;
             }
-            /* Necessary after an error */
-            FD_ZERO(rset);
-            FD_SET(ctx->s, rset);
-        } else {
-            return -1;
+        }
+
+        if (s_rc == -1
+            || (pIsActive && *pIsActive && s_rc == 0 && pTV == &timeVal))
+        {
+            timeVal.tv_sec = 1;
+            timeVal.tv_usec = 0;
+            s_rc = select(ctx->s+1, rset, NULL, NULL, pTV);
         }
     }
 
