@@ -393,11 +393,17 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type, int* p
         /* Wait for a message, we don't know when the message will be
          * received */
         p_tv = NULL;
+
+        if(ctx->traceCallback)
+            ctx->traceCallback((unsigned char *)"msg_type == MSG_INDICATION", strlen("msg_type == MSG_INDICATION"), 1, ctx->traceState);
     } 
     else {
         tv.tv_sec = ctx->response_timeout.tv_sec;
         tv.tv_usec = ctx->response_timeout.tv_usec;
         p_tv = &tv;
+
+        if(ctx->traceCallback)
+            ctx->traceCallback((unsigned char *)"msg_type != MSG_INDICATION", strlen("msg_type != MSG_INDICATION"), 1, ctx->traceState);
     }
 
     while (length_to_read > 0 && (!pIsActive || *pIsActive)) {
@@ -405,7 +411,13 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type, int* p
         FD_SET(ctx->s, &rset);
         rc = ctx->backend->select(ctx, &rset, p_tv, length_to_read, pIsActive);
 
+        if(ctx->traceCallback)
+            ctx->traceCallback((unsigned char *)"rc = ctx->backend->select(ctx, &rset, p_tv, length_to_read, pIsActive);", strlen("rc = ctx->backend->select(ctx, &rset, p_tv, length_to_read, pIsActive);"), 1, ctx->traceState);
+
         if (rc == -1) {
+            if(ctx->traceCallback)
+                ctx->traceCallback((unsigned char *)"rc == -1", strlen("rc == -1"), 1, ctx->traceState);
+
             _error_print(ctx, "select");
             if (ctx->error_recovery & MODBUS_ERROR_RECOVERY_LINK) {
                 int saved_errno = errno;
@@ -423,12 +435,19 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type, int* p
         }
 
         rc = ctx->backend->recv(ctx, msg + msg_length, length_to_read);
+        if(ctx->traceCallback)
+            ctx->traceCallback((unsigned char *)"rc = ctx->backend->recv(ctx, msg + msg_length, length_to_read);", strlen("rc = ctx->backend->recv(ctx, msg + msg_length, length_to_read);"), 1, ctx->traceState);
+
         if (rc == 0) {
+            if(ctx->traceCallback)
+                ctx->traceCallback((unsigned char *)"rc == 0", strlen("rc == 0"), 1, ctx->traceState);
             errno = ECONNRESET;
             rc = -1;
         }
 
         if (rc == -1) {
+            if(ctx->traceCallback)
+                ctx->traceCallback((unsigned char *)"rc == -1", strlen("rc == -1"), 1, ctx->traceState);
             _error_print(ctx, "read");
             if ((ctx->error_recovery & MODBUS_ERROR_RECOVERY_LINK) &&
                 (errno == ECONNRESET || errno == ECONNREFUSED ||
@@ -448,6 +467,9 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type, int* p
             for (i=0; i < rc; i++)
                 printf("<%.2X>", msg[msg_length + i]);
         }
+
+        if(ctx->traceCallback)
+            ctx->traceCallback(msg, msg_length, 1, ctx->traceState);
 
         /* Sums bytes received */
         msg_length += rc;
