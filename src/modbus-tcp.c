@@ -722,6 +722,9 @@ static int _modbus_tcp_select(modbus_t *ctx, fd_set *rset, struct timeval *tv, i
         {
             timeVal.tv_sec = 1;
             timeVal.tv_usec = 0;
+            /* Necessary after a timeout */
+            FD_ZERO(rset);
+            FD_SET(ctx->s, rset);
             s_rc = select(ctx->s+1, rset, NULL, NULL, pTV);
         }
     }
